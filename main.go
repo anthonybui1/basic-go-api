@@ -6,7 +6,14 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"context"
+	"time"
 
+	"github.com/joho/godotenv"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"github.com/gorilla/mux"
 )
 
@@ -49,6 +56,33 @@ func homeLink(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	uri := os.Getenv("CONNECTION_URI")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
+	if err != nil {
+		panic(err)
+	}
+
+	defer func() {
+		if err = client.Disconnect(ctx); err != nil {
+			panic(err)
+		}
+	}()
+
+	// Ping the primary
+	if err := client.Ping(ctx, readpref.Primary()); err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Successfully connected and pinged.");
+
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", homeLink)
 	router.HandleFunc("/events", createEvent).Methods("POST")
