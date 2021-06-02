@@ -1,20 +1,21 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"context"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"github.com/gorilla/mux"
 )
 
 type event struct {
@@ -55,6 +56,31 @@ func homeLink(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Welcome home!")
 }
 
+func getClient() *mongo.Database {
+	client, err := mongo.Connect(
+		context.Background(),
+		options.Client().ApplyURI(os.Getenv("CONNECTION_URI")),
+	)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return client.Database("myFirstDatabase")
+}
+
+func createTodo(w http.ResponseWriter, r *http.Request) {
+	collection := getClient().Collection("todos")
+	res, err := collection.InsertOne(context.TODO(), bson.D{
+		{Key: "title", Value: "Take out the laundry"},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("Inserted %v document into the todos collection!\n", res)
+	// TODO: Figure out status codes and termination of request cycle
+}
+
 func main() {
 	err := godotenv.Load()
 	if err != nil {
@@ -64,7 +90,7 @@ func main() {
 	uri := os.Getenv("CONNECTION_URI")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	
+
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
 	if err != nil {
 		panic(err)
@@ -81,11 +107,12 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("Successfully connected and pinged.");
+	fmt.Println("Successfully connected and pinged.")
 
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", homeLink)
 	router.HandleFunc("/events", createEvent).Methods("POST")
 	router.HandleFunc("/events", getAllEvents).Methods("GET")
+	router.HandleFunc("/todos", createTodo).Methods("POST")
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
