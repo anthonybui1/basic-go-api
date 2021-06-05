@@ -69,16 +69,19 @@ func getClient() *mongo.Database {
 	return client.Database("myFirstDatabase")
 }
 
+type todo struct {
+	Title string `json:"title"`
+}
+
 func createTodo(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("content-type", "application/json")
+	var newTodo todo
+	_ = json.NewDecoder(r.Body).Decode(&newTodo)
 	collection := getClient().Collection("todos")
-	res, err := collection.InsertOne(context.TODO(), bson.D{
-		{Key: "title", Value: "Take out the laundry"},
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("Inserted %v document into the todos collection!\n", res)
-	// TODO: Figure out status codes and termination of request cycle
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	result, _ := collection.InsertOne(ctx, newTodo)
+	json.NewEncoder(w).Encode(result)
 }
 
 func getTodos(w http.ResponseWriter, r *http.Request) {
