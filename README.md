@@ -3,13 +3,22 @@
 ## Description
 
 This repo contains the code for a basic webserver written with Go. This project is intended
-primarily for educational purposes.
+primarily for learning new technologies.
 
 ## Technologies
 
 - Go
 - Gorilla/Mux
 - MongoDB
+- Docker
+
+## Goals
+
+- RESTful architecture
+- JSON validation
+- Authorization routes
+- Travis/Jenkins CI/CD
+- Amazon ECS deployment
 
 ## Contributing
 
