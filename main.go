@@ -53,7 +53,7 @@ func createEvent(w http.ResponseWriter, r *http.Request) {
 }
 
 func homeLink(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Welcome home!")
+	fmt.Fprintf(w, "Hello, world!")
 }
 
 func getClient() *mongo.Database {
