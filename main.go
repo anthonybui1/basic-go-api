@@ -81,6 +81,20 @@ func createTodo(w http.ResponseWriter, r *http.Request) {
 	// TODO: Figure out status codes and termination of request cycle
 }
 
+func getTodos(w http.ResponseWriter, r *http.Request) {
+	collection := getClient().Collection("todos")
+	cursor, err := collection.Find(context.TODO(), bson.M{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	var todos []bson.M
+	if err = cursor.All(context.TODO(), &todos); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(todos)
+	json.NewEncoder(w).Encode(todos)
+}
+
 func main() {
 	err := godotenv.Load()
 	if err != nil {
@@ -114,5 +128,6 @@ func main() {
 	router.HandleFunc("/events", createEvent).Methods("POST")
 	router.HandleFunc("/events", getAllEvents).Methods("GET")
 	router.HandleFunc("/todos", createTodo).Methods("POST")
+	router.HandleFunc("/todos", getTodos).Methods("GET")
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
